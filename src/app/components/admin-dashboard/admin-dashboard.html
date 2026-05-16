@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<div class="admin-layout">
+  <!-- Topbar -->
+  <header class="admin-topbar glass">
+    <div class="topbar-left">
+      <div class="logo-icon">
+        <span class="material-icons-round">admin_panel_settings</span>
+      </div>
+      <div>
+        <h1 class="topbar-title">Platform Admin</h1>
+        <span class="topbar-subtitle">ConnectHub Control Panel</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="admin-user-info">
+        <div class="avatar avatar-sm admin-avatar">{{ getUserInitial(currentUser!) }}</div>
+        <span class="admin-username">{{ currentUser?.fullName || currentUser?.username }}</span>
+        <span class="role-badge">Admin</span>
+      </div>
+      <button class="btn btn-secondary btn-sm" (click)="backToChat()">
+        <span class="material-icons-round">arrow_back</span>
+        Back to Chat
+      </button>
+    </div>
+  </header>
+
+  <!-- Nav Tabs -->
+  <nav class="admin-nav glass">
+    <button class="nav-tab" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
+      <span class="material-icons-round">dashboard</span>
+      Overview
+    </button>
+    <button class="nav-tab" [class.active]="activeTab === 'users'" (click)="setTab('users')">
+      <span class="material-icons-round">people</span>
+      Users
+      <span class="tab-count">{{ allUsers.length }}</span>
+    </button>
+    <button class="nav-tab" [class.active]="activeTab === 'rooms'" (click)="setTab('rooms')">
+      <span class="material-icons-round">forum</span>
+      Rooms
+      <span class="tab-count">{{ allRooms.length }}</span>
+    </button>
+    <button class="nav-tab" [class.active]="activeTab === 'broadcast'" (click)="setTab('broadcast')">
+      <span class="material-icons-round">campaign</span>
+      Broadcast
+    </button>
+    <button class="nav-tab" [class.active]="activeTab === 'audit'" (click)="setTab('audit')">
+      <span class="material-icons-round">history</span>
+      Audit Logs
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+
+    <!-- ===== OVERVIEW TAB ===== -->
+    <div *ngIf="activeTab === 'overview'" class="tab-content animate-fade-in">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Platform Overview</h2>
+          <p class="section-subtitle">Real-time analytics across the entire platform</p>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="loadAnalytics()">
+          <span class="material-icons-round" [class.animate-spin]="analyticsLoading">refresh</span>
+          Refresh Stats
+        </button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card glass">
+          <div class="stat-icon bg-blue">
+            <span class="material-icons-round">people</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.totalUsers }}</span>
+            <span class="stat-label">Total Users</span>
+          </div>
+        </div>
+
+        <div class="stat-card glass">
+          <div class="stat-icon bg-green">
+            <span class="material-icons-round">wifi</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.activeConnections }}</span>
+            <span class="stat-label">Active Connections</span>
+          </div>
+        </div>
+
+        <div class="stat-card glass">
+          <div class="stat-icon bg-purple">
+            <span class="material-icons-round">chat</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.totalMessages }}</span>
+            <span class="stat-label">Total Messages</span>
+          </div>
+        </div>
+
+        <div class="stat-card glass">
+          <div class="stat-icon bg-orange">
+            <span class="material-icons-round">forum</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.activeRooms }}</span>
+            <span class="stat-label">Active Rooms</span>
+          </div>
+        </div>
+
+        <div class="stat-card glass">
+          <div class="stat-icon bg-pink">
+            <span class="material-icons-round">trending_up</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.messagesPerDay }}</span>
+            <span class="stat-label">Avg. Messages/Day</span>
+          </div>
+        </div>
+
+        <div class="stat-card glass">
+          <div class="stat-icon bg-teal">
+            <span class="material-icons-round">storage</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ formatBytes(stats.fileStorageUsedBytes) }}</span>
+            <span class="stat-label">Storage Used</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Platform breakdown -->
+      <div class="breakdown-section">
+        <div class="breakdown-card glass">
+          <h3 class="breakdown-title">
+            <span class="material-icons-round">pie_chart</span>
+            Room Breakdown
+          </h3>
+          <div class="breakdown-list">
+            <div class="breakdown-item">
+              <div class="breakdown-dot bg-pink"></div>
+              <span>Direct Messages</span>
+              <span class="breakdown-count">{{ stats.directRooms }}</span>
+            </div>
+            <div class="breakdown-item">
+              <div class="breakdown-dot bg-teal"></div>
+              <span>Group Chats</span>
+              <span class="breakdown-count">{{ stats.groupRooms }}</span>
+            </div>
+            <div class="breakdown-item">
+              <div class="breakdown-dot bg-purple"></div>
+              <span>Channels</span>
+              <span class="breakdown-count">{{ stats.channelRooms }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="breakdown-card glass">
+          <h3 class="breakdown-title">
+            <span class="material-icons-round">bar_chart</span>
+            System Health
+          </h3>
+          <div class="breakdown-list">
+            <div class="breakdown-item">
+              <div class="breakdown-dot bg-green"></div>
+              <span>WebSocket Handler</span>
+              <span class="breakdown-count">Healthy</span>
+            </div>
+            <div class="breakdown-item">
+              <div class="breakdown-dot bg-green"></div>
+              <span>Auth Service</span>
+              <span class="breakdown-count">Healthy</span>
+            </div>
+            <div class="breakdown-item">
+              <div class="breakdown-dot bg-green"></div>
+              <span>Message Service</span>
+              <span class="breakdown-count">Healthy</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== USERS TAB ===== -->
+    <div *ngIf="activeTab === 'users'" class="tab-content animate-fade-in">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">User Management</h2>
+          <p class="section-subtitle">Monitor and manage all user accounts</p>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="loadUsers()">
+          <span class="material-icons-round">refresh</span>
+          Refresh
+        </button>
+      </div>
+
+      <div class="search-bar glass">
+        <span class="material-icons-round">search</span>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search by username, name, or email..."
+          [(ngModel)]="userSearchTerm"
+          (input)="filterUsers()"
+        >
+      </div>
+
+      <div class="table-loading" *ngIf="usersLoading">
+        <div class="spinner-ring"></div>
+        <span>Loading users...</span>
+      </div>
+
+      <div class="admin-table-wrap glass" *ngIf="!usersLoading">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Status</th>
+              <th>Role</th>
+              <th>Account</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of filteredUsers" class="table-row">
+              <td>
+                <div class="user-cell">
+                  <div class="avatar avatar-sm">{{ getUserInitial(user) }}</div>
+                  <div>
+                    <div class="user-fullname">{{ user.fullName || user.username }}</div>
+                    <div class="user-meta">{{ user.email }} • @{{ user.username }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="status-chip" [ngClass]="getStatusClass(user.status || '')">
+                  <span class="status-dot-sm"></span>
+                  {{ (user.status || 'OFFLINE') | uppercase }}
+                </span>
+              </td>
+              <td>
+                <span class="role-chip" [class.role-admin]="user.role === 'ROLE_ADMIN'">
+                  {{ getRoleBadge(user) }}
+                </span>
+              </td>
+              <td>
+                <span class="status-badge" [class.active]="user.isActive !== false" [class.inactive]="user.isActive === false">
+                  {{ user.isActive !== false ? 'Active' : 'Suspended' }}
+                </span>
+              </td>
+              <td class="text-right">
+                <div class="action-buttons">
+                  <button *ngIf="user.isActive !== false && user.role !== 'ROLE_ADMIN'" class="btn-icon warn" title="Suspend User" (click)="suspendUser(user)">
+                    <span class="material-icons-round">block</span>
+                  </button>
+                  <button *ngIf="user.isActive === false" class="btn-icon success" title="Reactivate User" (click)="reactivateUser(user)">
+                    <span class="material-icons-round">check_circle</span>
+                  </button>
+                  <button *ngIf="user.role !== 'ROLE_ADMIN'" class="btn-icon danger" title="Delete User" (click)="deleteUser(user)">
+                    <span class="material-icons-round">delete_forever</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredUsers.length === 0">
+              <td colspan="5" class="empty-row">No users found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== ROOMS TAB ===== -->
+    <div *ngIf="activeTab === 'rooms'" class="tab-content animate-fade-in">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Room Management</h2>
+          <p class="section-subtitle">Monitor and moderate all chat rooms</p>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="loadRooms()">
+          <span class="material-icons-round">refresh</span>
+          Refresh
+        </button>
+      </div>
+
+      <div class="search-bar glass">
+        <span class="material-icons-round">search</span>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search by room name or type..."
+          [(ngModel)]="roomSearchTerm"
+          (input)="filterRooms()"
+        >
+      </div>
+
+      <div class="table-loading" *ngIf="roomsLoading">
+        <div class="spinner-ring"></div>
+        <span>Loading rooms...</span>
+      </div>
+
+      <div class="admin-table-wrap glass" *ngIf="!roomsLoading">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Room</th>
+              <th>Type</th>
+              <th>Members</th>
+              <th>Created</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let room of filteredRooms" class="table-row">
+              <td>
+                <div class="room-cell">
+                  <div class="room-icon-wrap">
+                    <span class="material-icons-round room-icon">{{ getRoomIcon(room.type) }}</span>
+                  </div>
+                  <div>
+                    <div class="room-name">{{ room.name }}</div>
+                    <div class="user-meta">{{ room.description || 'No description' }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="type-chip type-{{ room.type | lowercase }}">
+                  {{ room.type }}
+                </span>
+              </td>
+              <td>
+                <span class="member-count">{{ room.memberCount || 0 }} members</span>
+              </td>
+              <td class="muted">{{ room.createdAt ? (room.createdAt | date:'MMM d, y') : '—' }}</td>
+              <td class="text-right">
+                <button class="btn-icon danger" title="Delete Room" (click)="deleteRoom(room)">
+                  <span class="material-icons-round">delete_forever</span>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="filteredRooms.length === 0">
+              <td colspan="5" class="empty-row">No rooms found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== BROADCAST TAB ===== -->
+    <div *ngIf="activeTab === 'broadcast'" class="tab-content animate-fade-in">
+      <h2 class="section-title">Global Broadcast</h2>
+      <p class="section-subtitle">Send a platform-wide announcement to all connected users</p>
+
+      <div class="broadcast-card glass">
+        <div class="form-group">
+          <label>Announcement Title</label>
+          <input type="text" [(ngModel)]="broadcast.title" placeholder="e.g., Scheduled Maintenance" class="admin-input">
+        </div>
+        <div class="form-group">
+          <label>Message Content</label>
+          <textarea [(ngModel)]="broadcast.message" placeholder="Type your message here..." rows="5" class="admin-input"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Notification Type</label>
+          <div class="type-selector">
+            <button class="type-btn" [class.active]="broadcast.type === 'INFO'" (click)="broadcast.type = 'INFO'">
+              <span class="material-icons-round">info</span> Info
+            </button>
+            <button class="type-btn" [class.active]="broadcast.type === 'WARNING'" (click)="broadcast.type = 'WARNING'">
+              <span class="material-icons-round">warning</span> Warning
+            </button>
+            <button class="type-btn" [class.active]="broadcast.type === 'ALERT'" (click)="broadcast.type = 'ALERT'">
+              <span class="material-icons-round">error</span> Alert
+            </button>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" [disabled]="!broadcast.title || !broadcast.message || broadcastSending" (click)="sendBroadcast()">
+            <span class="material-icons-round" *ngIf="!broadcastSending">send</span>
+            <span class="spinner-ring sm" *ngIf="broadcastSending"></span>
+            {{ broadcastSending ? 'Sending...' : 'Broadcast Now' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AUDIT LOGS TAB ===== -->
+    <div *ngIf="activeTab === 'audit'" class="tab-content animate-fade-in">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Audit Logs</h2>
+          <p class="section-subtitle">History of all administrative actions</p>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="loadAuditLogs()">
+          <span class="material-icons-round">refresh</span>
+          Refresh
+        </button>
+      </div>
+
+      <div class="table-loading" *ngIf="logsLoading">
+        <div class="spinner-ring"></div>
+        <span>Loading logs...</span>
+      </div>
+
+      <div class="admin-table-wrap glass" *ngIf="!logsLoading">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Admin</th>
+              <th>Action</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let log of auditLogs" class="table-row">
+              <td class="muted">{{ log.timestamp | date:'MMM d, h:mm a' }}</td>
+              <td>
+                <div class="admin-cell">
+                  <span class="admin-name">{{ log.adminName }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="action-badge">{{ log.action }}</span>
+              </td>
+              <td class="muted">{{ log.details }}</td>
+            </tr>
+            <tr *ngIf="auditLogs.length === 0">
+              <td colspan="4" class="empty-row">No audit logs found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+

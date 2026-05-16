@@ -1,0 +1,83 @@
+<div class="auth-container">
+  <div class="auth-card glass animate-fade-in">
+    <!-- Logo / Brand -->
+    <div class="auth-header">
+      <div class="logo">
+        <span class="material-icons-round logo-icon">chat</span>
+        <h1>ConnectHub</h1>
+      </div>
+      <p class="subtitle">Sign in to continue chatting</p>
+    </div>
+
+    <!-- Error Message -->
+    <div class="error-banner" *ngIf="error">
+      <span class="material-icons-round">error_outline</span>
+      {{ error }}
+    </div>
+
+    <!-- Google Sign-In Button (rendered by GSI SDK) -->
+    <div class="google-btn-wrapper" *ngIf="googleAvailable; else googleUnavailable">
+      <div #googleSigninBtn id="google-signin-btn"></div>
+      <div *ngIf="googleLoading" class="google-loading">
+        <span class="spinner"></span> Signing in with Google...
+      </div>
+    </div>
+
+    <ng-template #googleUnavailable>
+      <div class="error-banner">
+        <span class="material-icons-round">info</span>
+        Google sign-in is not configured for this environment.
+      </div>
+    </ng-template>
+
+    <!-- Divider -->
+    <div class="divider">
+      <span>or sign in with email</span>
+    </div>
+
+    <!-- Login Form -->
+    <form (ngSubmit)="onLogin()" class="auth-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          class="input-field"
+          placeholder="you@example.com"
+          [(ngModel)]="email"
+          name="email"
+          autocomplete="email"
+          required>
+        <div *ngIf="emailError" style="color: red; font-size: 12px; margin-top: 4px;">{{ emailError }}</div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          class="input-field"
+          placeholder="••••••••"
+          [(ngModel)]="password"
+          name="password"
+          autocomplete="current-password"
+          required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" [disabled]="loading">
+        <span class="material-icons-round" *ngIf="!loading">login</span>
+        <span *ngIf="loading" class="spinner"></span>
+        {{ loading ? 'Signing in...' : 'Sign In' }}
+      </button>
+    </form>
+
+    <!-- Footer -->
+    <div class="auth-footer">
+      <p>Don't have an account? <a routerLink="/register">Create one</a></p>
+    </div>
+  </div>
+
+  <!-- Background decoration -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+</div>

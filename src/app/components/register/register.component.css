@@ -1,0 +1,165 @@
+/* Ensure the host element does not create a stacking/clipping context
+   that would prevent the fixed-position modal-backdrop from overlaying the full viewport */
+:host {
+  display: block;
+  position: relative;
+  z-index: 0;
+}
+
+/* Register page — balanced layout to fit in one screen without scrolling or congestion */
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 15px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 32px;
+  border-radius: var(--border-radius-lg);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-header { text-align: center; margin-bottom: 12px; }
+
+.logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 4px; }
+
+.logo-icon {
+  font-size: 30px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo h1 {
+  font-size: 24px; font-weight: 700;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle { color: var(--text-secondary); font-size: 14px; }
+
+.auth-form { display: flex; flex-direction: column; gap: 10px; }
+
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+
+.form-group label {
+  font-size: 12px; font-weight: 500; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* Balanced inputs */
+.auth-card .input-field {
+  padding: 11px 16px;
+  font-size: 14px;
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn-full { width: 100%; padding: 12px; font-size: 15px; margin-top: 6px; }
+
+.error-banner {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: var(--border-radius); color: var(--danger); font-size: 12px;
+  margin-bottom: 10px; animation: fadeIn 0.3s ease;
+}
+.error-banner .material-icons-round { font-size: 16px; }
+
+.auth-footer {
+  text-align: center; margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+.auth-footer p { font-size: 14px; color: var(--text-secondary); }
+
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.bg-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4; pointer-events: none; }
+.orb-1 { width: 400px; height: 400px; background: var(--accent-primary); top: -100px; right: -100px; }
+.orb-2 { width: 300px; height: 300px; background: var(--accent-secondary); bottom: -80px; left: -80px; }
+
+/* ---- Google Sign-Up ---- */
+.google-btn-wrapper {
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 40px;
+}
+.google-btn-wrapper > div { width: 100% !important; }
+.google-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+/* ---- Divider ---- */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+/* ---- Google Setup Modal ---- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 14, 29, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 460px;
+  border-radius: var(--border-radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-card h3 { margin: 0; }
+
+.modal-subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}

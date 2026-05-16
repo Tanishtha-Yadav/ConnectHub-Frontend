@@ -1,0 +1,221 @@
+/* ---- Auth Page Layout ---- */
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 15px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px 32px;
+  border-radius: var(--border-radius-lg);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.logo-icon {
+  font-size: 32px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo h1 {
+  font-size: 26px;
+  font-weight: 700;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* ---- Form ---- */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Consistent inputs */
+.auth-card .input-field {
+  padding: 11px 16px;
+  font-size: 14px;
+}
+
+.btn-full {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  margin-top: 6px;
+}
+
+/* ---- Error Banner ---- */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: var(--border-radius);
+  color: var(--danger);
+  font-size: 12px;
+  margin-bottom: 10px;
+  animation: fadeIn 0.3s ease;
+}
+
+.error-banner .material-icons-round { font-size: 16px; }
+
+/* ---- Footer ---- */
+.auth-footer {
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.auth-footer p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ---- Spinner ---- */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Background Orbs ---- */
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  pointer-events: none;
+}
+.orb-1 {
+  width: 400px;
+  height: 400px;
+  background: var(--accent-primary);
+  top: -100px;
+  right: -100px;
+}
+.orb-2 {
+  width: 300px;
+  height: 300px;
+  background: var(--accent-secondary);
+  bottom: -80px;
+  left: -80px;
+}
+
+/* ---- Google Sign-In ---- */
+.google-btn-wrapper {
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 40px;
+}
+
+/* Force the GSI button to fill the card width */
+.google-btn-wrapper > div {
+  width: 100% !important;
+}
+
+.google-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+/* ---- Divider ---- */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 24px;
+  }
+
+  .auth-card {
+    padding: 20px 16px;
+    max-width: 100%;
+    border-radius: var(--border-radius);
+  }
+
+  .logo h1 { font-size: 22px; }
+  .logo-icon { font-size: 26px; }
+
+  .orb-1 { width: 200px; height: 200px; }
+  .orb-2 { width: 150px; height: 150px; }
+}
+
+@media (max-width: 360px) {
+  .auth-card { padding: 16px 12px; }
+  .btn-full { font-size: 14px; }
+}

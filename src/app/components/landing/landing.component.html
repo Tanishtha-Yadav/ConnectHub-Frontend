@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="description" content="ConnectHub — Real-time messaging for teams and communities. Chat, share, collaborate.">
+</head>
+<body>
+<!-- ============================================================
+     ConnectHub Landing Page
+     ============================================================ -->
+<div class="landing-root">
+
+  <!-- ---- NAVBAR ---- -->
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="material-icons-round nav-logo-icon">hub</span>
+      <span class="nav-logo-text">ConnectHub</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-ghost" (click)="goToLogin()">Sign In</button>
+      <button class="btn-cta-sm" (click)="goToRegister()">Get Started</button>
+    </div>
+  </nav>
+
+  <!-- ---- HERO ---- -->
+  <section class="hero">
+    <div class="hero-bg-orb orb-1"></div>
+    <div class="hero-bg-orb orb-2"></div>
+    <div class="hero-bg-orb orb-3"></div>
+
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="material-icons-round" style="font-size:14px">bolt</span>
+        Real-Time &nbsp;·&nbsp; Secure &nbsp;·&nbsp; Beautiful
+      </div>
+
+      <h1 class="hero-title">
+        The Chat App <br/>
+        <span class="gradient-text">Built for Everyone</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        ConnectHub brings your team, friends, and communities together in one beautifully designed space —
+        with lightning-fast messaging, rich media sharing, and smart notifications.
+      </p>
+
+      <div class="hero-buttons">
+        <button class="btn-primary-lg" (click)="goToRegister()">
+          <span class="material-icons-round">rocket_launch</span>
+          Start for Free
+        </button>
+        <button class="btn-outline-lg" (click)="goToLogin()">
+          <span class="material-icons-round">login</span>
+          Sign In
+        </button>
+      </div>
+
+      <p class="hero-note">No credit card required &nbsp;·&nbsp; Free forever plan</p>
+    </div>
+
+    <!-- Floating chat preview cards -->
+    <div class="hero-preview" aria-hidden="true">
+      <div class="preview-card pc-1">
+        <div class="preview-avatar pa-blue">A</div>
+        <div class="preview-bubble">Hey team, let's start! 🚀</div>
+      </div>
+      <div class="preview-card pc-2">
+        <div class="preview-bubble pb-right">Looks amazing 🎉</div>
+        <div class="preview-avatar pa-purple">T</div>
+      </div>
+      <div class="preview-card pc-3">
+        <div class="preview-avatar pa-green">R</div>
+        <div class="preview-bubble">File shared: design_v3.fig <span class="material-icons-round" style="font-size:14px;vertical-align:middle">attach_file</span></div>
+      </div>
+      <div class="preview-status">
+        <span class="status-dot-live"></span> 3 members online
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- FEATURES ---- -->
+  <section class="features">
+    <div class="section-label">Why ConnectHub</div>
+    <h2 class="section-title">Everything you need to <span class="gradient-text">stay connected</span></h2>
+    <p class="section-sub">Powerful features crafted for seamless communication, right out of the box.</p>
+
+    <div class="features-grid">
+      <div class="feature-card" *ngFor="let f of features">
+        <div class="feature-icon-wrap">
+          <span class="material-icons-round feature-icon">{{ f.icon }}</span>
+        </div>
+        <h3 class="feature-title">{{ f.title }}</h3>
+        <p class="feature-desc">{{ f.desc }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- CTA ---- -->
+  <section class="cta-section">
+    <div class="cta-glow"></div>
+    <h2 class="cta-title">Ready to connect?</h2>
+    <p class="cta-sub">Join thousands of users already chatting on ConnectHub. It takes less than 30 seconds to get started.</p>
+    <div class="cta-buttons">
+      <button class="btn-primary-lg" (click)="goToRegister()">
+        <span class="material-icons-round">person_add</span>
+        Create Free Account
+      </button>
+      <button class="btn-ghost-lg" (click)="goToLogin()">
+        Already have an account? Sign in →
+      </button>
+    </div>
+  </section>
+
+  <!-- ---- FOOTER ---- -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <span class="material-icons-round" style="color:var(--accent-primary);font-size:20px">hub</span>
+      <span>ConnectHub</span>
+    </div>
+    <p class="footer-copy">© 2026 ConnectHub. Built with ❤️ for real-time communication.</p>
+  </footer>
+
+</div>
+</body>
+</html>

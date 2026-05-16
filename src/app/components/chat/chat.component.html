@@ -1,0 +1,1171 @@
+<!-- ============================================================ -->
+<!-- BROADCAST BANNER — shown when admin sends a platform-wide msg -->
+<!-- ============================================================ -->
+<div class="modal-backdrop" *ngIf="activeBroadcast" style="z-index: 10000;">
+  <div class="modal-card glass animate-fade-in" style="max-width: 400px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2.5rem 2rem;">
+    <span class="material-icons-round" style="font-size: 48px; margin-bottom: 16px;"
+          [style.color]="activeBroadcast.subType === 'ALERT' ? '#ef4444' : activeBroadcast.subType === 'WARNING' ? '#f59e0b' : '#3b82f6'">
+      {{ activeBroadcast.subType === 'ALERT' ? 'error' : activeBroadcast.subType === 'WARNING' ? 'warning' : 'campaign' }}
+    </span>
+    <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 12px; color: #f1f5f9; text-align: center;">{{ activeBroadcast.title }}</h2>
+    <p style="font-size: 15px; color: #cbd5e1; margin-bottom: 24px; line-height: 1.5; text-align: center;">{{ activeBroadcast.message }}</p>
+    <button class="btn btn-primary" style="min-width: 120px; justify-content: center;" (click)="dismissBroadcast()">OK</button>
+  </div>
+</div>
+
+<div class="chat-layout">
+  <!-- Mobile sidebar backdrop -->
+  <div class="sidebar-backdrop" [class.visible]="mobileSidebarOpen" (click)="mobileSidebarOpen = false"></div>
+
+  <!-- ============================================================ -->
+  <!-- SIDEBAR — Room List -->
+  <!-- ============================================================ -->
+  <aside class="sidebar glass" [class.mobile-open]="mobileSidebarOpen">
+    <!-- User Header -->
+    <div class="sidebar-header">
+      <div class="user-info">
+        <div class="avatar avatar-sm" [class.prime-border]="currentUser?.isPrime || currentUser?.role === 'ROLE_ADMIN'">
+          <img *ngIf="currentUser?.avatarUrl" [src]="cleanUrl(currentUser!.avatarUrl)" (error)="currentUser!.avatarUrl = ''" class="avatar-img" (click)="openBigProfile(currentUser!.avatarUrl); $event.stopPropagation()" >
+          <div *ngIf="!currentUser?.avatarUrl" class="avatar-fallback"></div>
+          <div *ngIf="currentUser?.isPrime || currentUser?.role === 'ROLE_ADMIN'" class="prime-badge" title="Prime Member"><span class="material-icons-round">star</span></div>
+        </div>
+        <div class="user-details">
+          <span class="user-name" [class.prime-name]="currentUser?.isPrime || currentUser?.role === 'ROLE_ADMIN'" style="cursor: pointer;" (click)="openUserDetails(currentUser)" title="View Profile">{{ currentUser?.fullName }}</span>
+          <span class="user-status">
+            <span [class]="getDotClass(currentUser?.status)"></span> {{ getStatusText(currentUser?.status) === 'Offline' ? 'Invisible' : getStatusText(currentUser?.status) }}
+          </span>
+        </div>
+      </div>
+      <button class="icon-btn" (click)="openProfileModal()" title="Edit Profile">
+        <span class="material-icons-round">edit</span>
+      </button>
+      <button class="icon-btn" *ngIf="currentUser?.role === 'ROLE_ADMIN'" (click)="goToAdminPanel()" title="Admin Panel">
+        <span class="material-icons-round">admin_panel_settings</span>
+      </button>
+      <button class="icon-btn" (click)="logout()" title="Logout">
+        <span class="material-icons-round">logout</span>
+      </button>
+      <div class="notif-badge-container" title="Notifications" style="cursor: pointer; position: relative;" (click)="toggleNotifPanel()">
+        <span class="material-icons-round">notifications</span>
+        <span class="notif-count-badge" *ngIf="unreadNotificationCount > 0">{{ unreadNotificationCount }}</span>
+      </div>
+
+      <!-- Notification Dropdown Panel -->
+      <div class="notif-panel glass" *ngIf="showNotifPanel">
+        <div class="notif-panel-header">
+          <span class="notif-panel-title">Notifications</span>
+          <button class="btn btn-secondary btn-sm" (click)="markAllNotifsRead()" *ngIf="unreadNotificationCount > 0">Mark all read</button>
+        </div>
+        <div class="notif-loading" *ngIf="notifLoading">
+          <div class="spinner"></div>
+        </div>
+        <div class="notif-empty" *ngIf="!notifLoading && notifications.length === 0">
+          <span class="material-icons-round">notifications_none</span>
+          <p>No notifications yet</p>
+        </div>
+        <div class="notif-list" *ngIf="!notifLoading && notifications.length > 0">
+          <div class="notif-item" *ngFor="let n of notifications"
+               [class.unread]="!n.isRead"
+               (click)="markNotifRead(n)">
+            <span class="material-icons-round notif-icon">{{ n.type === 'MENTION' ? 'alternate_email' : 'notifications' }}</span>
+            <div class="notif-body">
+              <span class="notif-title">{{ n.title }}</span>
+              <span class="notif-msg">{{ n.message }}</span>
+            </div>
+            <span class="notif-dot" *ngIf="!n.isRead"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prime Upgrade Button -->
+    <div style="padding: 0 16px 4px 16px;" *ngIf="!currentUser?.isPrime && currentUser?.role !== 'ROLE_ADMIN'">
+      <button class="btn-prime" (click)="openPrimeModal()">
+        <span class="material-icons-round" style="color: #000;">star</span>
+        Upgrade to Prime
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="sidebar-tabs" style="display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 12px; margin-top: 8px;">
+      <button class="tab-btn" [class.active]="activeTab === 'chats'" (click)="activeTab = 'chats'" style="flex: 1; padding: 8px; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; color: var(--text-primary); font-weight: 600; font-size: 14px; transition: border-color 0.2s;" [style.border-bottom-color]="activeTab === 'chats' ? 'var(--primary-color)' : 'transparent'">Chats</button>
+      <button class="tab-btn" [class.active]="activeTab === 'rooms'" (click)="activeTab = 'rooms'" style="flex: 1; padding: 8px; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; color: var(--text-primary); font-weight: 600; font-size: 14px; transition: border-color 0.2s;" [style.border-bottom-color]="activeTab === 'rooms' ? 'var(--primary-color)' : 'transparent'">Rooms</button>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- CHATS TAB -->
+    <!-- ============================================================ -->
+    <ng-container *ngIf="activeTab === 'chats'">
+      <div class="user-search-panel">
+        <div class="search-input-wrap">
+          <span class="material-icons-round">person_search</span>
+          <input
+            type="text"
+            class="input-field input-sm"
+            placeholder="Search by username, name, or email"
+            [(ngModel)]="userSearchTerm"
+            (input)="searchUsers()"
+          >
+          <button class="icon-btn" *ngIf="userSearchTerm" (click)="clearUserSearch()" title="Clear search">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+
+        <div class="search-loading" *ngIf="userSearchLoading">Searching...</div>
+        <div class="search-error" *ngIf="userSearchError">{{ userSearchError }}</div>
+        <div class="search-loading" *ngIf="dmLoading">Opening chat...</div>
+
+        <div class="user-search-results" *ngIf="!userSearchLoading && userSearchResults.length > 0">
+          <div class="user-search-item" *ngFor="let user of userSearchResults"
+               (click)="openDM(user)" style="cursor:pointer">
+            <div class="avatar avatar-sm" [class.prime-border]="currentUser?.isPrime">
+              <img *ngIf="user.avatarUrl" [src]="cleanUrl(user.avatarUrl)" (error)="user.avatarUrl = ''" class="avatar-img" (click)="openBigProfile(user.avatarUrl); $event.stopPropagation()" >
+              <div *ngIf="!user.avatarUrl" class="avatar-fallback"></div>
+            </div>
+            <div class="user-search-meta">
+              <span class="user-search-name">{{ user.fullName || user.username }}</span>
+              <span class="user-search-username">@{{ user.username }}</span>
+            </div>
+            <button class="btn btn-primary btn-sm" (click)="openDM(user); $event.stopPropagation()" title="Direct Message">
+              <span class="material-icons-round" style="font-size:16px">message</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="room-list">
+        <!-- Loading skeleton -->
+        <div class="skeleton-rooms" *ngIf="loadingRooms">
+          <div class="skeleton-room" *ngFor="let i of [1,2,3,4]">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-text"></div>
+          </div>
+        </div>
+
+        <!-- Actual room items -->
+        <div class="room-item animate-slide-left"
+          *ngFor="let room of chatRooms; let i = index"
+          [class.active]="selectedRoom?.roomId === room.roomId"
+          [style.animation-delay]="i * 50 + 'ms'"
+          (click)="selectRoom(room)">
+          <div class="room-avatar" [attr.data-type]="room.type">
+            <img *ngIf="room.avatarUrl" [src]="cleanUrl(room.avatarUrl)" (error)="room.avatarUrl = ''" class="avatar-img" (click)="openBigProfile(room.avatarUrl); $event.stopPropagation()" >
+            <div *ngIf="!room.avatarUrl" class="avatar-fallback"></div>
+          </div>
+          <div class="room-info">
+            <span class="room-name">{{ room.name }}</span>
+          </div>
+          <span class="badge-accent room-unread-badge" *ngIf="room.unreadCount && room.unreadCount > 0">
+            {{ room.unreadCount }}
+          </span>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" *ngIf="!loadingRooms && chatRooms.length === 0">
+          <span class="material-icons-round">chat_bubble_outline</span>
+          <p>No chats yet</p>
+          <p class="hint">Search for a user to start chatting!</p>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ============================================================ -->
+    <!-- ROOMS TAB -->
+    <!-- ============================================================ -->
+    <ng-container *ngIf="activeTab === 'rooms'">
+      <!-- Create Room / Join Room Buttons -->
+      <div class="sidebar-actions" style="display: flex; gap: 8px;">
+        <button class="btn btn-primary btn-sm" style="flex: 1;" (click)="showCreateRoom = true">
+          <span class="material-icons-round">add</span> New
+        </button>
+        <button class="btn btn-secondary btn-sm" style="flex: 1;" (click)="openJoinRoomModal()">
+          <span class="material-icons-round">link</span> Join
+        </button>
+      </div>
+
+      <div class="user-search-panel" style="margin-top: 12px;">
+        <div class="search-input-wrap">
+          <span class="material-icons-round">search</span>
+          <input
+            type="text"
+            class="input-field input-sm"
+            placeholder="Search rooms"
+            [(ngModel)]="roomSearchTerm"
+          >
+          <button class="icon-btn" *ngIf="roomSearchTerm" (click)="roomSearchTerm = ''" title="Clear search">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Inline Create Room Form removed, moved to a modal -->
+
+      <div class="room-list">
+        <!-- Loading skeleton -->
+        <div class="skeleton-rooms" *ngIf="loadingRooms">
+          <div class="skeleton-room" *ngFor="let i of [1,2,3,4]">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-text"></div>
+          </div>
+        </div>
+
+        <!-- Actual room items -->
+        <div class="room-item animate-slide-left"
+          *ngFor="let room of filteredGroupRooms; let i = index"
+          [class.active]="selectedRoom?.roomId === room.roomId"
+          [style.animation-delay]="i * 50 + 'ms'"
+          (click)="selectRoom(room)">
+          <div class="room-avatar" [attr.data-type]="room.type">
+            <img *ngIf="getRoomAvatarUrl(room)" [src]="cleanUrl(getRoomAvatarUrl(room))" (error)="room.avatarUrl = ''" class="avatar-img" (click)="openBigProfile(getRoomAvatarUrl(room)); $event.stopPropagation()" >
+            <div *ngIf="!getRoomAvatarUrl(room)" class="avatar-fallback"></div>
+          </div>
+          <div class="room-info">
+            <span class="room-name">{{ room.name }}</span>
+            <div class="room-meta-row">
+              <span class="room-meta">{{ room.memberCount }} members</span>
+            </div>
+          </div>
+          <span class="badge-accent room-unread-badge" *ngIf="room.unreadCount && room.unreadCount > 0">
+            {{ room.unreadCount }}
+          </span>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" *ngIf="!loadingRooms && filteredGroupRooms.length === 0">
+          <span class="material-icons-round">group_add</span>
+          <p>No rooms found</p>
+          <p class="hint">Create a new room to get started!</p>
+        </div>
+      </div>
+    </ng-container>
+  </aside>
+
+  <!-- ============================================================ -->
+  <!-- MAIN — Message Area -->
+  <!-- ============================================================ -->
+  <main class="main-content">
+  <!-- ============================================================ -->
+  <!-- MOBILE TOP BAR — always visible on small screens -->
+  <!-- ============================================================ -->
+  <!-- ============================================================ -->
+  <!-- MOBILE TOP BAR — always visible on small screens -->
+  <!-- ============================================================ -->
+  <div class="mobile-top-bar">
+
+    <!-- No room selected: hamburger + title -->
+    <ng-container *ngIf="!selectedRoom">
+      <button class="icon-btn" (click)="mobileSidebarOpen = true" title="Open menu">
+        <span class="material-icons-round">menu</span>
+      </button>
+      <span class="mobile-title">ConnectHub</span>
+      <div style="width:36px"></div>
+    </ng-container>
+
+    <!-- Room selected: back + room info + action buttons -->
+    <ng-container *ngIf="selectedRoom">
+      <button class="icon-btn" (click)="goBack()" title="Back">
+        <span class="material-icons-round">arrow_back</span>
+      </button>
+
+      <!-- Avatar (clickable) -->
+      <div class="mobile-room-avatar"
+           (click)="selectedRoom.type === 'DIRECT' ? openUserDetails(getOtherDirectMember()?.user) : openRoomDetails()"
+           title="View info" style="cursor:pointer">
+        <img *ngIf="getRoomAvatarUrl(selectedRoom)" [src]="cleanUrl(getRoomAvatarUrl(selectedRoom))" (error)="selectedRoom!.avatarUrl=''" class="avatar-img">
+        <div *ngIf="!getRoomAvatarUrl(selectedRoom)" class="avatar-fallback"></div>
+      </div>
+
+      <div class="mobile-room-header-info"
+           (click)="selectedRoom.type === 'DIRECT' ? openUserDetails(getOtherDirectMember()?.user) : openRoomDetails()"
+           style="cursor:pointer">
+        <span class="mobile-room-name">{{ selectedRoom.name }}</span>
+        <!-- DM: show online status / last seen -->
+        <span class="mobile-room-subtitle" *ngIf="selectedRoom.type === 'DIRECT' && getOtherDirectMember() as other">
+          {{ getDirectUserStatusText(other) }}
+        </span>
+        <!-- Group/Channel: show member count -->
+        <span class="mobile-room-subtitle" *ngIf="selectedRoom.type !== 'DIRECT'">
+          {{ selectedRoom.memberCount }} members
+        </span>
+      </div>
+
+      <div class="mobile-header-actions">
+        <button class="icon-btn" title="Search" (click)="showMessageSearch = !showMessageSearch">
+          <span class="material-icons-round">search</span>
+        </button>
+        <button class="icon-btn" title="Room info" (click)="openRoomInfo()" *ngIf="selectedRoom.type !== 'DIRECT'">
+          <span class="material-icons-round">info_outline</span>
+        </button>
+        <button class="icon-btn" title="Settings" (click)="openRoomSettings()" *ngIf="selectedRoom.type === 'DIRECT'">
+          <span class="material-icons-round">settings</span>
+        </button>
+      </div>
+    </ng-container>
+
+  </div>
+
+    <!-- No room selected state -->
+    <div class="no-room-selected" *ngIf="!selectedRoom">
+      <div class="welcome-card animate-fade-in">
+        <span class="material-icons-round welcome-icon">forum</span>
+        <h2>Welcome to ConnectHub</h2>
+        <p>Select a room from the sidebar or create a new one to start chatting</p>
+      </div>
+    </div>
+
+    <!-- Room selected — show messages -->
+    <ng-container *ngIf="selectedRoom">
+      <!-- Room Header -->
+      <div class="room-header glass">
+        <div class="room-header-info">
+          <div class="room-avatar-lg" [attr.data-type]="selectedRoom.type">
+            <img *ngIf="getRoomAvatarUrl(selectedRoom)" [src]="cleanUrl(getRoomAvatarUrl(selectedRoom))" (error)="selectedRoom!.avatarUrl = ''" class="avatar-img" (click)="openBigProfile(getRoomAvatarUrl(selectedRoom)); $event.stopPropagation()" >
+            <div *ngIf="!getRoomAvatarUrl(selectedRoom)" class="avatar-fallback"></div>
+          </div>
+          <div>
+            <h3 class="room-title" style="cursor: pointer;" (click)="selectedRoom.type === 'DIRECT' ? openUserDetails(getOtherDirectMember()?.user) : openRoomDetails()" title="View Info">{{ selectedRoom.name }}</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <ng-container *ngIf="selectedRoom.type !== 'DIRECT'">
+                <span class="room-subtitle">{{ selectedRoom.memberCount }} members</span>
+                <span *ngIf="selectedRoom.description" class="room-subtitle" style="font-style: italic; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 1px solid var(--border-color); padding-left: 8px;">
+                  {{ selectedRoom.description }}
+                </span>
+              </ng-container>
+              <ng-container *ngIf="selectedRoom.type === 'DIRECT' && getOtherDirectMember() as other">
+                <span class="room-subtitle" [class.status-online-text]="other.onlineStatus === 'online' && other.user?.status !== 'invisible'">
+                  {{ getDesktopDirectUserStatusText(other) }}
+                </span>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+        <div class="room-header-actions">
+          <!-- Inline search bar (shown when toggled) -->
+          <div class="search-bar" *ngIf="showMessageSearch">
+            <span class="material-icons-round" style="font-size:16px;color:var(--text-muted);padding:0 4px">search</span>
+            <input #searchInput type="text" placeholder="Search messages..." autocomplete="off"
+                   [(ngModel)]="messageSearchTerm"
+                   (keyup.enter)="searchMessages()"
+                   (keyup.escape)="clearSearch()"
+                   style="border:none;background:transparent;color:var(--text-primary);outline:none;font-size:13px;width:160px;padding:4px 0">
+            <button class="icon-btn-sm" (click)="clearSearch()" title="Close">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+          <button class="icon-btn" title="Search messages" (click)="showMessageSearch = !showMessageSearch">
+            <span class="material-icons-round">search</span>
+          </button>
+          <button class="icon-btn" title="Room Settings" (click)="openRoomSettings()" *ngIf="selectedRoom.type === 'DIRECT'">
+            <span class="material-icons-round">settings</span>
+          </button>
+          <button class="icon-btn" title="Room info" (click)="openRoomInfo()" *ngIf="selectedRoom.type !== 'DIRECT'">
+            <span class="material-icons-round">info_outline</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pinned Message Banner (Carousel - always one row high) -->
+      <div class="pinned-messages-container" *ngIf="getPinnedMessages().length > 0">
+        <ng-container *ngIf="getCurrentPinnedMessage() as pinnedMsg">
+          <button class="pin-nav-btn" *ngIf="getPinnedMessages().length > 1" (click)="navigatePinnedMessage(-1, $event)" title="Previous pinned">
+            <span class="material-icons-round">chevron_left</span>
+          </button>
+          <div class="pinned-message-banner" (click)="scrollToMessage(pinnedMsg.messageId!)" style="cursor:pointer">
+            <div class="pinned-icon">
+              <span class="material-icons-round" style="color: #6366F1;">{{ getPinnedMessagePreview(pinnedMsg).icon }}</span>
+            </div>
+            <div class="pinned-content">
+              <div class="pinned-label">Pinned <span class="pin-counter" *ngIf="getPinnedMessages().length > 1">{{ pinnedMessageIndex + 1 }}/{{ getPinnedMessages().length }}</span></div>
+              <div class="pinned-text">{{ getPinnedMessagePreview(pinnedMsg).text }}</div>
+            </div>
+            <button class="icon-btn-sm unpin-btn" *ngIf="isOwnerOrAdmin()" (click)="pinMessage(pinnedMsg); $event.stopPropagation()" title="Unpin message">
+              <span class="material-icons-round">push_pin</span>
+            </button>
+          </div>
+          <button class="pin-nav-btn" *ngIf="getPinnedMessages().length > 1" (click)="navigatePinnedMessage(1, $event)" title="Next pinned">
+            <span class="material-icons-round">chevron_right</span>
+          </button>
+        </ng-container>
+      </div>
+
+      <!-- Messages Container -->
+      <div class="messages-container" #messageContainer (scroll)="onScroll($event)">
+        <!-- Loading -->
+        <div class="messages-loading" *ngIf="loadingMessages || loadingMoreMessages">
+          <div class="spinner"></div>
+          <span>Loading messages...</span>
+        </div>
+        <!-- Search Results Banner -->
+        <div class="search-results-banner" *ngIf="isSearching && !loadingMessages">
+          <span class="material-icons-round">search</span>
+          <span>Results for "<strong>{{ messageSearchTerm }}</strong>" — {{ messages.length }} found</span>
+          <button class="icon-btn-sm" (click)="clearSearch()" title="Exit search">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+
+        <!-- Messages -->
+        <div class="message-list" *ngIf="!loadingMessages">
+          <div class="message-wrapper"
+            *ngFor="let msg of messages; trackBy: trackByMessageId"
+            [id]="'msg-' + msg.messageId"
+            [class.my-message]="isMyMessage(msg)"
+            [class.other-message]="!isMyMessage(msg)">
+
+            <!-- Avatar for other people's messages -->
+            <div class="msg-avatar" *ngIf="!isMyMessage(msg)">
+              <img *ngIf="getUserAvatar(msg.senderId)" [src]="getUserAvatar(msg.senderId)" class="avatar-img" (click)="openBigProfile(getUserAvatar(msg.senderId)); $event.stopPropagation()" (error)="handleAvatarError(msg.senderId)">
+              <div *ngIf="!getUserAvatar(msg.senderId)" class="avatar-fallback"></div>
+            </div>
+
+            <div class="message-bubble-wrapper">
+              <div class="message-bubble" [class.deleted]="msg.isDeleted">
+                <!-- Quoted Reply Snippet -->
+                <div class="quoted-reply" *ngIf="msg.replyToMessageId && !msg.isDeleted" (click)="scrollToMessage(msg.replyToMessageId)">
+                  <span class="material-icons-round">reply</span>
+                  <span>{{ getMessagePreview(msg.replyToMessageId) }}</span>
+                </div>
+
+                <span class="msg-sender" *ngIf="!isMyMessage(msg)">
+                  {{ msg.senderName || 'Unknown' }}
+                </span>
+              <!-- Text content — hidden for pure media messages that only carry JSON meta -->
+              <p class="msg-content" *ngIf="!msg.isDeleted && msg.type === 'TEXT'">
+                <span *ngIf="msg.isPinned" class="material-icons-round pin-icon" style="font-size: 14px; color: var(--primary-color); vertical-align: middle; margin-right: 4px;" title="Pinned">push_pin</span>
+                {{ msg.content }}
+              </p>
+
+              <!-- IMAGE rendering -->
+              <div class="msg-media" *ngIf="msg.type === 'IMAGE' && msg.mediaUrl && !msg.isDeleted">
+                <!-- PDF: no real thumbnail → show a placeholder card instead -->
+                <ng-container *ngIf="getFileExtension(msg) === 'pdf'; else realImage">
+                  <div class="file-card">
+                    <div class="file-card-icon" [style.color]="getFileIconColor(msg)" [style.background]="getFileIconColor(msg) + '1a'">
+                      <span class="material-icons-round">picture_as_pdf</span>
+                    </div>
+                    <div class="file-card-info">
+                      <span class="file-card-name">{{ getFileNameFromMessage(msg) }}</span>
+                      <span class="file-card-meta">
+                        <span class="file-ext-badge" [style.background]="getFileIconColor(msg) + '22'" [style.color]="getFileIconColor(msg)">PDF</span>
+                        <span *ngIf="getFileSizeFromMessage(msg)" class="file-card-size">{{ getFileSizeFromMessage(msg) }}</span>
+                      </span>
+                    </div>
+                    <a *ngIf="!isDownloaded(msg.messageId)" href="#" class="file-download-btn" title="Download" (click)="downloadMedia(msg, $event)">
+                      <span class="material-icons-round" *ngIf="!isDownloading(msg.messageId)">download</span>
+                      <span class="spinner" *ngIf="isDownloading(msg.messageId)" style="width: 16px; height: 16px; border-width: 2px; margin: auto;"></span>
+                    </a>
+                  </div>
+                </ng-container>
+                <ng-template #realImage>
+                  <div class="img-card">
+                    <a [href]="cleanUrl(msg.mediaUrl)" target="_blank">
+                      <img [src]="cleanUrl(msg.thumbnailUrl || msg.mediaUrl)" alt="Attached Image" class="chat-image">
+                    </a>
+                    <div class="img-card-footer">
+                      <span class="file-card-name" style="flex:1; min-width:0;">{{ getFileNameFromMessage(msg) }}</span>
+                      <span class="file-ext-badge"
+                        [style.background]="getFileIconColor(msg) + '22'"
+                        [style.color]="getFileIconColor(msg)">
+                        {{ getFileExtension(msg).toUpperCase() || 'IMG' }}
+                      </span>
+                      <span *ngIf="getFileSizeFromMessage(msg)" class="file-card-size">{{ getFileSizeFromMessage(msg) }}</span>
+                      <a *ngIf="!isDownloaded(msg.messageId)" href="#" class="file-download-btn" title="Download" (click)="downloadMedia(msg, $event)">
+                        <span class="material-icons-round" *ngIf="!isDownloading(msg.messageId)">download</span>
+                        <span class="spinner" *ngIf="isDownloading(msg.messageId)" style="width: 16px; height: 16px; border-width: 2px; margin: auto;"></span>
+                      </a>
+                    </div>
+                  </div>
+                </ng-template>
+              </div>
+
+              <!-- FILE rendering — rich card with icon, name, ext badge, size, download -->
+              <div class="msg-media" *ngIf="msg.type === 'FILE' && msg.mediaUrl && !msg.isDeleted">
+                <div class="file-card">
+                  <div class="file-card-icon" [style.color]="getFileIconColor(msg)" [style.background]="getFileIconColor(msg) + '1a'">
+                    <span class="material-icons-round">{{ getFileIcon(msg) }}</span>
+                  </div>
+                  <div class="file-card-info">
+                    <span class="file-card-name">{{ getFileNameFromMessage(msg) }}</span>
+                    <span class="file-card-meta">
+                      <span class="file-ext-badge" [style.background]="getFileIconColor(msg) + '22'" [style.color]="getFileIconColor(msg)">{{ getFileExtension(msg).toUpperCase() || 'FILE' }}</span>
+                      <span *ngIf="getFileSizeFromMessage(msg)" class="file-card-size">{{ getFileSizeFromMessage(msg) }}</span>
+                    </span>
+                  </div>
+                  <a *ngIf="!isDownloaded(msg.messageId)" href="#" class="file-download-btn" title="Download" (click)="downloadMedia(msg, $event)">
+                    <span class="material-icons-round" *ngIf="!isDownloading(msg.messageId)">download</span>
+                    <span class="spinner" *ngIf="isDownloading(msg.messageId)" style="width: 16px; height: 16px; border-width: 2px; margin: auto;"></span>
+                  </a>
+                </div>
+              </div>
+
+              <p class="msg-content deleted-text" *ngIf="msg.isDeleted">
+                <em>This message was deleted</em>
+              </p>
+              <div class="msg-footer">
+                <span class="msg-time">{{ getMessageTime(msg) }}</span>
+                <span class="msg-edited" *ngIf="msg.isEdited">edited</span>
+                <span class="msg-status-text"
+                  *ngIf="isMyMessage(msg)"
+                  [class.delivered]="msg.deliveryStatus === 'DELIVERED'"
+                  [class.read]="msg.deliveryStatus === 'READ'">
+                  {{ getDeliveryText(msg) }}
+                </span>
+              </div>
+              
+              <!-- Reactions Display -->
+              <div class="reactions-display" *ngIf="msg.reactions && getObjectKeys(msg.reactions).length > 0">
+                <div class="reaction-badge" *ngFor="let emoji of getObjectKeys(msg.reactions)">
+                  {{ emoji }} {{ msg.reactions[emoji] }}
+                </div>
+              </div> <!-- end reactions-display -->
+            </div> <!-- end message-bubble -->
+
+              <!-- Action Bar — below the bubble, in normal flow, never off-screen -->
+              <div class="message-actions" *ngIf="!msg.isDeleted">
+                <button class="icon-btn-sm" (click)="showReactionPickerFor = msg.messageId" title="React">
+                  <span class="material-icons-round">add_reaction</span>
+                </button>
+                <div class="inline-reaction-picker" *ngIf="showReactionPickerFor === msg.messageId">
+                  <span *ngFor="let emoji of emojis" (click)="reactToMessage(msg, emoji)">{{ emoji }}</span>
+                </div>
+                <button class="icon-btn-sm" (click)="initiateReply(msg)" title="Reply">
+                  <span class="material-icons-round">reply</span>
+                </button>
+                <!-- Edit is only available for plain text messages, not media -->
+                <button class="icon-btn-sm" *ngIf="isMyMessage(msg) && msg.type === 'TEXT'" (click)="initiateEdit(msg)" title="Edit">
+                  <span class="material-icons-round">edit</span>
+                </button>
+                <button class="icon-btn-sm" *ngIf="isOwnerOrAdmin()" (click)="pinMessage(msg)" title="{{ msg.isPinned ? 'Unpin Message' : 'Pin Message' }}">
+                  <span class="material-icons-round" [style.color]="msg.isPinned ? 'var(--primary-color)' : ''">push_pin</span>
+                </button>
+                <button class="icon-btn-sm" *ngIf="isMyMessage(msg) || isOwnerOrAdmin()" (click)="deleteMessage(msg)" title="Delete">
+                  <span class="material-icons-round">delete_outline</span>
+                </button>
+              </div>
+
+            </div> <!-- end message-bubble-wrapper -->
+          </div>
+
+          <!-- Empty messages -->
+          <div class="empty-messages" *ngIf="messages.length === 0">
+            <span class="material-icons-round">chat</span>
+            <p>No messages yet. Say hello! 👋</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="typing-indicator" *ngIf="typingUsers.size > 0">
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span>{{ getTypingText() }}</span>
+      </div>
+
+      <!-- Message Input -->
+      <div class="message-input-area glass">
+        <!-- Emoji picker -->
+        <div class="emoji-picker animate-fade-in" *ngIf="showEmojiPicker">
+          <button *ngFor="let emoji of emojis" class="emoji-btn" (click)="addEmoji(emoji)">
+            {{ emoji }}
+          </button>
+        </div>
+
+        <!-- Mention autocomplete popup -->
+        <div class="mention-popup animate-fade-in" *ngIf="showMentionPopup && mentionSuggestions.length > 0">
+          <div class="mention-item" *ngFor="let user of mentionSuggestions" (click)="insertMention(user)">
+            <div class="avatar avatar-sm" [class.prime-border]="currentUser?.isPrime"><span class="material-icons-round" style="font-size: 1.2em; color: var(--text-muted);">person</span></div>
+            <div class="mention-info">
+              <span class="mention-name">{{ user.fullName || user.username }}</span>
+              <span class="mention-username">@{{ user.username }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Context Banner (Reply / Edit) -->
+        <div class="action-banner glass" *ngIf="replyingToMessage || editingMessage">
+          <div class="action-banner-content">
+            <span class="material-icons-round action-icon">{{ replyingToMessage ? 'reply' : 'edit' }}</span>
+            <div class="action-text">
+              <strong>{{ replyingToMessage ? 'Replying to ' + (replyingToMessage.senderName || 'Someone') : 'Editing message' }}</strong>
+              <p>{{ (replyingToMessage?.content || editingMessage?.content | slice:0:50) + '...' }}</p>
+            </div>
+          </div>
+          <button class="icon-btn" (click)="cancelAction()" title="Cancel">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+
+        <div class="input-row">
+          <input type="file" #fileInput hidden (change)="onFileSelected($event)" [disabled]="isCurrentUserMuted()">
+          <button class="icon-btn" (click)="fileInput.click()" [disabled]="uploadingFile || isCurrentUserMuted()" title="Attach file">
+            <span *ngIf="uploadingFile" class="spinner"></span>
+            <span *ngIf="!uploadingFile" class="material-icons-round">attach_file</span>
+          </button>
+          <button class="icon-btn" (click)="showEmojiPicker = !showEmojiPicker" [disabled]="isCurrentUserMuted()" title="Emoji">
+            <span class="material-icons-round">emoji_emotions</span>
+          </button>
+          <input type="text" class="input-field message-field"
+            #messageInput
+            [placeholder]="isCurrentUserMuted() ? 'You are muted in this room' : 'Type a message...'"
+            [(ngModel)]="newMessage"
+            (input)="onMessageInput($event)"
+            (keydown)="onKeyDown($event)"
+            [disabled]="isCurrentUserMuted()"
+            autocomplete="off">
+          <button class="send-btn" (click)="sendMessage()"
+            [disabled]="!newMessage.trim() || isCurrentUserMuted()"
+            [class.active]="newMessage.trim() && !isCurrentUserMuted()">
+            <span class="material-icons-round">send</span>
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </main>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal-backdrop" *ngIf="showProfileModal">
+    <div class="modal-card glass animate-fade-in">
+      <h3>Edit Profile</h3>
+
+      <div class="form-group">
+        <label for="profile-email">Email (cannot be changed)</label>
+        <input id="profile-email" type="email" class="input-field" [value]="currentUser?.email" disabled>
+      </div>
+
+      <div class="form-group">
+        <label for="profile-username">Username</label>
+        <input id="profile-username" type="text" class="input-field" [(ngModel)]="profileUsername">
+      </div>
+
+      <div class="form-group">
+        <label for="profile-fullname">Full Name</label>
+        <input id="profile-fullname" type="text" class="input-field" [(ngModel)]="profileFullName">
+      </div>
+
+      <div class="form-group">
+        <label>Profile Image</label>
+        <div style="display:flex; align-items:center; gap: 12px; margin-bottom: 8px;">
+           <img *ngIf="profileAvatarUrl" [src]="cleanUrl(profileAvatarUrl)" (error)="profileAvatarUrl = ''" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer;" (click)="openBigProfile(profileAvatarUrl)" >
+           <div *ngIf="!profileAvatarUrl" class="avatar-fallback" style="width:60px; height:60px; border:2px solid var(--border-color); display:flex; align-items:center; justify-content:center;"></div>
+           <div>
+             <input type="file" #profileAvatarInput hidden (change)="uploadProfileAvatar($event)" accept="image/*">
+             <button type="button" class="btn btn-secondary btn-sm" (click)="profileAvatarInput.click()">Change Photo</button>
+           </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="profile-status-message">Status Message</label>
+        <input id="profile-status-message" type="text" class="input-field" [(ngModel)]="profileStatusMessage" placeholder="e.g. At the gym">
+      </div>
+
+      <div class="form-group">
+        <label for="profile-online-status">Online Status</label>
+        <select id="profile-online-status" class="input-field" [(ngModel)]="profileOnlineStatus">
+          <option value="online">Online</option>
+          <option value="away">Away</option>
+          <option value="dnd">Do Not Disturb</option>
+          <option value="invisible">Invisible</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="profile-bio">Bio</label>
+        <textarea id="profile-bio" class="input-field textarea-field" rows="3" [(ngModel)]="profileBio"></textarea>
+      </div>
+
+      <hr style="border-color: var(--border-color); margin: 8px 0;" />
+      <h4 style="margin:0; font-size: 14px;">Change Password</h4>
+      
+      <div class="form-group">
+        <label for="profile-current-password">Current Password</label>
+        <input id="profile-current-password" type="password" class="input-field" [(ngModel)]="currentPassword">
+      </div>
+      
+      <div style="display:flex; gap:12px;">
+        <div class="form-group" style="flex:1;">
+          <label for="profile-new-password">New Password</label>
+          <input id="profile-new-password" type="password" class="input-field" [(ngModel)]="newPassword">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label for="profile-confirm-password">Confirm Password</label>
+          <input id="profile-confirm-password" type="password" class="input-field" [(ngModel)]="confirmPassword">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" (click)="closeProfileModal()" [disabled]="profileSaving">Cancel</button>
+        <button class="btn btn-primary" type="button" (click)="saveProfile()" [disabled]="profileSaving">
+          <span *ngIf="profileSaving" class="spinner"></span>
+          {{ profileSaving ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Room Info / Members Modal -->
+  <div class="modal-backdrop" *ngIf="showRoomInfoModal">
+    <div class="modal-card glass animate-fade-in" style="max-height: 90vh; overflow-y: auto; width: 560px; max-width: 95vw;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h3>{{ selectedRoom?.name }}</h3>
+          <p class="hint" style="margin-bottom: 4px;">Type: {{ selectedRoom?.type }} • Members: {{ selectedRoom?.memberCount }}<span *ngIf="selectedRoom?.maxMemberLimit"> / {{ selectedRoom?.maxMemberLimit }}</span></p>
+          <p *ngIf="selectedRoom?.description" style="font-size: 13px; color: var(--text-secondary); margin-top: 0; margin-bottom: 8px; font-style: italic;">{{ selectedRoom?.description }}</p>
+          <button class="btn btn-secondary btn-sm" (click)="openGallery()" style="margin-top: 4px;">View Media Gallery</button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="icon-btn" (click)="openRoomSettings()" title="Room Settings">
+            <span class="material-icons-round">settings</span>
+          </button>
+          <button class="icon-btn" (click)="closeRoomInfo()" title="Close">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="max-height: 222px; overflow-y: auto; margin-top: 16px; padding-right: 4px; scrollbar-width: thin;" *ngIf="!roomInfoLoading">
+        <div *ngFor="let m of roomMembersWithDetails" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="position: relative;">
+              <div class="avatar avatar-sm" [class.prime-border]="m.user?.isPrime">
+                <img *ngIf="m.user?.avatarUrl" [src]="cleanUrl(m.user!.avatarUrl)" class="avatar-img" (click)="openBigProfile(cleanUrl(m.user!.avatarUrl)); $event.stopPropagation()" (error)="m.user!.avatarUrl = ''">
+                <div *ngIf="!m.user?.avatarUrl" class="avatar-fallback"></div>
+              </div>
+              <span [class]="getDotClass(m.onlineStatus)" style="position: absolute; bottom: -2px; right: -2px; width: 10px; height: 10px; border: 2px solid var(--bg-primary);" *ngIf="m.user?.username !== 'deleted'"></span>
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-size: 14px; font-weight: 600;" [style.color]="m.user?.username === 'deleted' ? 'var(--text-muted)' : 'inherit'">
+                {{ m.user?.fullName || m.user?.username || 'Loading...' }}
+                <span *ngIf="m.isMuted" class="material-icons-round" style="font-size: 14px; color: #e53e3e; vertical-align: middle; margin-left: 4px;" title="Muted">mic_off</span>
+              </span>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span style="font-size: 12px; color: var(--text-muted);">{{ m.role === 'ADMIN' ? 'Room Admin' : (m.role === 'OWNER' ? 'Owner' : 'User') }}</span>
+                <span *ngIf="m.userId !== currentUser?.userId && getLastSeenText(m.lastSeenAt) && m.user?.username !== 'deleted'"
+                  style="font-size: 11px; color: var(--text-muted); font-style: italic;">
+                  Last seen: {{ getLastSeenText(m.lastSeenAt) }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;" *ngIf="isOwnerOrAdmin() && m.userId !== currentUser?.userId && m.role !== 'OWNER'">
+            <ng-container *ngIf="m.user?.username !== 'deleted'">
+              <select *ngIf="isOwnerOrAdmin()" [ngModel]="m.role" (ngModelChange)="changeRole(m.userId, $event)" style="font-size: 12px; padding: 4px 6px; border-radius: 6px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); cursor: pointer;">
+                <option value="MEMBER">User</option>
+                <option value="ADMIN">Room Admin</option>
+              </select>
+              <button class="icon-btn-sm" *ngIf="isOwnerOrAdmin()" (click)="toggleMute(m.userId, m.isMuted || false)" [title]="m.isMuted ? 'Unmute Member' : 'Mute Member'">
+                <span class="material-icons-round" [style.color]="m.isMuted ? '#e53e3e' : 'var(--text-secondary)'" style="font-size: 18px;">{{ m.isMuted ? 'mic_off' : 'mic' }}</span>
+              </button>
+            </ng-container>
+            <button class="icon-btn-sm" style="color: #e53e3e;" (click)="removeRoomMember(m.userId, m.user?.fullName || m.user?.username)" title="Remove Member">
+              <span class="material-icons-round" style="font-size: 18px;">person_remove</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="messages-loading" *ngIf="roomInfoLoading">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- Invite Link Section (Only for GROUP/CHANNEL) -->
+      <div *ngIf="isOwnerOrAdmin() && selectedRoom?.type !== 'DIRECT' && selectedRoom?.inviteToken" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+        <h4 style="margin: 0 0 8px; font-size: 14px;">Invite Link</h4>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" class="input-field input-sm" readonly [value]="selectedRoom?.inviteToken" style="flex: 1;" (click)="$event.target.select()">
+          <button class="btn btn-secondary btn-sm" (click)="copyInviteLink()">Copy</button>
+        </div>
+      </div>
+
+      <!-- Add Member Section (Only for GROUP/CHANNEL) -->
+      <div *ngIf="isOwnerOrAdmin() && selectedRoom?.type !== 'DIRECT'" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+        <h4 style="margin: 0 0 8px; font-size: 14px;">Add Member</h4>
+        <div class="search-input-wrap" style="background: var(--bg-primary); border-radius: 4px; padding: 4px 8px;">
+          <span class="material-icons-round" style="font-size: 18px;">search</span>
+          <input type="text" class="input-field input-sm" style="border: none; background: transparent;"
+                 placeholder="Search user to add..."
+                 [(ngModel)]="addMemberSearchTerm" (input)="searchMembersToAdd()">
+        </div>
+        <div class="user-search-results" style="max-height: 150px;" *ngIf="addMemberSearchResults.length > 0">
+          <div class="user-search-item" *ngFor="let user of addMemberSearchResults" style="padding: 6px;">
+            <div class="avatar avatar-sm" style="width: 28px; height: 28px; font-size: 12px;">
+              <img *ngIf="user.avatarUrl" [src]="cleanUrl(user.avatarUrl)" (error)="user.avatarUrl = ''" class="avatar-img" (click)="openBigProfile(user.avatarUrl); $event.stopPropagation()" >
+              <div *ngIf="!user.avatarUrl" class="avatar-fallback"></div>
+            </div>
+            <div class="user-search-meta">
+              <span class="user-search-name" style="font-size: 13px;">{{ user.fullName || user.username }}</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 12px;" (click)="addUserFromModal(user)">Add</button>
+          </div>
+        </div>
+        <div class="search-error" *ngIf="addMemberSearchTerm.length >= 2 && addMemberSearchResults.length === 0" style="margin-top: 8px;">
+          No matching users found.
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top: 16px; justify-content: space-between;">
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" style="color: #e53e3e; border-color: #fc8181; background: transparent;" type="button" (click)="leaveRoom()">Leave</button>
+          <button *ngIf="isOwnerOrAdmin()" class="btn btn-secondary" style="color: white; background: #e53e3e; border-color: #e53e3e;" type="button" (click)="deleteRoom()">Delete</button>
+        </div>
+        <button class="btn btn-secondary" type="button" (click)="closeRoomInfo()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Room Settings Modal -->
+<!-- ============================================================ -->
+<div class="modal-backdrop" *ngIf="showRoomSettingsModal">
+  <div class="modal-card glass animate-fade-in">
+    <h3>Room Settings</h3>
+    
+    <form (ngSubmit)="saveRoomSettings()" #roomSettingsForm="ngForm">
+      <ng-container *ngIf="selectedRoom?.type !== 'DIRECT'">
+        <div class="form-group">
+          <label>Room Name</label>
+          <input type="text" class="input-field" [(ngModel)]="roomSettingsName" name="name" required>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" class="input-field" [(ngModel)]="roomSettingsDesc" name="description">
+        </div>
+        <div class="form-group">
+          <label>Room Image</label>
+          <div style="display:flex; align-items:center; gap: 12px; margin-bottom: 8px;">
+             <img *ngIf="roomSettingsAvatar" [src]="cleanUrl(roomSettingsAvatar)" (error)="roomSettingsAvatar = ''" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer;" (click)="openBigProfile(roomSettingsAvatar)">
+             <div *ngIf="!roomSettingsAvatar" class="avatar-fallback" style="width:60px; height:60px; border:2px solid var(--border-color); display:flex; align-items:center; justify-content:center;"></div>
+             <div *ngIf="isOwnerOrAdmin()">
+               <input type="file" #roomAvatarInput hidden (change)="uploadRoomAvatar($event)" accept="image/*">
+               <button type="button" class="btn btn-secondary btn-sm" (click)="roomAvatarInput.click()">Change Photo</button>
+             </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Max Members</label>
+          <input type="number" class="input-field" [(ngModel)]="roomSettingsMaxMembers" name="maxMembers" placeholder="Leave empty for unlimited">
+        </div>
+      </ng-container>
+      <div class="form-group" *ngIf="isOwnerOrAdmin()" style="margin-top: 1.5rem; border: 1px solid #fc8181; border-radius: 6px; padding: 1rem; background: rgba(229, 62, 62, 0.05);">
+        <h4 style="color: #e53e3e; margin: 0 0 8px 0; font-size: 14px; display: flex; align-items: center; gap: 4px;">
+          <span class="material-icons-round" style="font-size: 16px;">warning</span> Danger Zone
+        </h4>
+        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0;">This will permanently delete all messages in this chat. This action cannot be undone.</p>
+        <button type="button" class="btn btn-secondary w-100" style="color: white; background: #e53e3e; border-color: #e53e3e; display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 8px;" (click)="clearRoomHistory()">
+          <span class="material-icons-round">delete_sweep</span> Clear Chat History
+        </button>
+        <button type="button" class="btn btn-secondary w-100" style="color: white; background: #e53e3e; border-color: #e53e3e; display: flex; justify-content: center; align-items: center; gap: 6px;" (click)="deleteRoom()">
+          <span class="material-icons-round">delete_forever</span> Delete Chat
+        </button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" (click)="showRoomSettingsModal = false" [disabled]="roomSettingsSaving">Cancel</button>
+        <button class="btn btn-primary" type="submit" [disabled]="!roomSettingsForm.form.valid || roomSettingsSaving" *ngIf="selectedRoom?.type !== 'DIRECT'">
+          {{ roomSettingsSaving ? 'Saving...' : 'Save Settings' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Join Room via Invite Modal -->
+<!-- ============================================================ -->
+<div class="modal-backdrop" *ngIf="showJoinRoomModal">
+  <div class="modal-card glass animate-fade-in" style="max-width: 400px;">
+    <h3>Join Room</h3>
+    <p style="margin-bottom: 12px; font-size: 14px;">Enter the invite token to join a group or channel.</p>
+    
+    <form (ngSubmit)="joinRoom()" #joinRoomForm="ngForm">
+      <div class="form-group">
+        <input type="text" class="input-field" [(ngModel)]="joinToken" name="joinToken" placeholder="Paste invite token here..." required>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" (click)="showJoinRoomModal = false" [disabled]="joiningRoom">Cancel</button>
+        <button class="btn btn-primary" type="submit" [disabled]="!joinRoomForm.form.valid || joiningRoom">
+          {{ joiningRoom ? 'Joining...' : 'Join' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Media Gallery Modal -->
+<!-- ============================================================ -->
+<div class="modal-backdrop" *ngIf="showGalleryModal">
+  <div class="modal-card glass animate-fade-in" style="max-height: 90vh; overflow-y: auto; max-width: 600px; width: 100%;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3>Media Gallery</h3>
+      <button class="icon-btn" (click)="closeGallery()">
+        <span class="material-icons-round">close</span>
+      </button>
+    </div>
+
+    <div class="messages-loading" *ngIf="galleryLoading">
+      <div class="spinner"></div>
+    </div>
+
+    <div *ngIf="!galleryLoading && galleryMessages.length === 0" style="text-align: center; padding: 20px; color: var(--text-muted);">
+      No media exchanged in this room yet.
+    </div>
+
+    <div *ngIf="!galleryLoading && galleryMessages.length > 0" class="gallery-list">
+      <ng-container *ngFor="let msg of galleryMessages">
+
+        <!-- IMAGE gallery item -->
+        <div *ngIf="msg.type === 'IMAGE'" class="gallery-item">
+          <!-- PDF in IMAGE slot — show icon instead of broken img -->
+          <ng-container *ngIf="getFileExtension(msg) === 'pdf'; else galleryImg">
+            <div class="gallery-item-icon" [style.color]="getFileIconColor(msg)" [style.background]="getFileIconColor(msg) + '18'">
+              <span class="material-icons-round">picture_as_pdf</span>
+            </div>
+          </ng-container>
+          <ng-template #galleryImg>
+            <a [href]="cleanUrl(msg.mediaUrl)" target="_blank" class="gallery-thumb-link">
+              <img [src]="cleanUrl(msg.thumbnailUrl || msg.mediaUrl)" class="gallery-thumb" [title]="getFileNameFromMessage(msg)">
+            </a>
+          </ng-template>
+
+          <div class="gallery-item-info">
+            <span class="gallery-item-name">{{ getFileNameFromMessage(msg) }}</span>
+            <div class="gallery-item-meta">
+              <span class="file-ext-badge"
+                [style.background]="getFileIconColor(msg) + '22'"
+                [style.color]="getFileIconColor(msg)">
+                {{ getFileExtension(msg).toUpperCase() || 'IMG' }}
+              </span>
+              <span *ngIf="getFileSizeFromMessage(msg)" class="file-card-size">{{ getFileSizeFromMessage(msg) }}</span>
+              <span class="gallery-sender">by {{ msg.senderName }}</span>
+            </div>
+          </div>
+          <a [href]="cleanUrl(msg.mediaUrl)" target="_blank" download class="gallery-download-btn" title="Download">
+            <span class="material-icons-round">download</span>
+          </a>
+        </div>
+
+        <!-- FILE gallery item -->
+        <div *ngIf="msg.type === 'FILE'" class="gallery-item">
+          <div class="gallery-item-icon" [style.color]="getFileIconColor(msg)" [style.background]="getFileIconColor(msg) + '18'">
+            <span class="material-icons-round">{{ getFileIcon(msg) }}</span>
+          </div>
+          <div class="gallery-item-info">
+            <span class="gallery-item-name">{{ getFileNameFromMessage(msg) }}</span>
+            <div class="gallery-item-meta">
+              <span class="file-ext-badge"
+                [style.background]="getFileIconColor(msg) + '22'"
+                [style.color]="getFileIconColor(msg)">
+                {{ getFileExtension(msg).toUpperCase() || 'FILE' }}
+              </span>
+              <span *ngIf="getFileSizeFromMessage(msg)" class="file-card-size">{{ getFileSizeFromMessage(msg) }}</span>
+              <span class="gallery-sender">by {{ msg.senderName }}</span>
+            </div>
+          </div>
+          <a [href]="cleanUrl(msg.mediaUrl)" target="_blank" download class="gallery-download-btn" title="Download">
+            <span class="material-icons-round">download</span>
+          </a>
+        </div>
+
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Big Profile Image Modal -->
+<!-- ============================================================ -->
+<div class="modal-backdrop" *ngIf="showBigProfileModal" (click)="showBigProfileModal = false" style="z-index: 2000;">
+  <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px;" (click)="$event.stopPropagation()">
+    <button class="icon-btn" (click)="showBigProfileModal = false" style="position: absolute; top: -44px; right: 0; color: white; background: rgba(0,0,0,0.5); z-index: 1;">
+      <span class="material-icons-round">close</span>
+    </button>
+    <div style="width: 300px; height: 300px; border-radius: 50%; overflow: hidden; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.5); background: #16213e; display: flex; align-items: center; justify-content: center;">
+      <img *ngIf="bigProfileUrl" [src]="cleanUrl(bigProfileUrl)" (error)="bigProfileUrl = ''" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+      <span *ngIf="!bigProfileUrl" class="material-icons-round" style="font-size: 120px; color: #6b7280;">person</span>
+    </div>
+  </div>
+</div>
+
+
+  <!-- Unified Details Modal -->
+  <div class="modal-backdrop" *ngIf="showDetailsModal" (click)="closeDetailsModal()">
+    <div class="modal-card glass animate-fade-in" style="width: 380px; max-height: 90vh; overflow-y: auto; text-align: center; padding: 30px 24px; border-radius: 16px;" (click)="$event.stopPropagation()">
+      
+      <!-- Close Button -->
+      <button class="icon-btn" (click)="closeDetailsModal()" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1);">
+        <span class="material-icons-round">close</span>
+      </button>
+
+      <!-- Profile Image (Medium Size) -->
+      <div style="position: relative; width: 100px; height: 100px; margin: 0 auto 16px;">
+        <div style="width: 100%; height: 100%; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent-primary); box-shadow: 0 4px 14px rgba(108,99,255,0.3);" [class.prime-border]="detailsType === 'USER' && (detailsUser?.isPrime || detailsUser?.role === 'ROLE_ADMIN')">
+          <ng-container *ngIf="detailsType === 'USER'">
+            <img *ngIf="detailsUser?.avatarUrl" [src]="cleanUrl(detailsUser!.avatarUrl)" (error)="detailsUser!.avatarUrl = ''" class="avatar-img" style="width: 100%; height: 100%; object-fit: cover;">
+            <div *ngIf="!detailsUser?.avatarUrl" class="avatar-fallback" style="width: 100%; height: 100%; display:flex; align-items:center; justify-content:center;"></div>
+          </ng-container>
+          <ng-container *ngIf="detailsType === 'ROOM'">
+            <img *ngIf="detailsRoom?.avatarUrl" [src]="cleanUrl(detailsRoom!.avatarUrl)" (error)="detailsRoom!.avatarUrl = ''" class="avatar-img" style="width: 100%; height: 100%; object-fit: cover;">
+            <div *ngIf="!detailsRoom?.avatarUrl" class="avatar-fallback" style="width: 100%; height: 100%; display:flex; align-items:center; justify-content:center;"></div>
+          </ng-container>
+        </div>
+        <div *ngIf="detailsType === 'USER' && (detailsUser?.isPrime || detailsUser?.role === 'ROLE_ADMIN')" class="prime-badge" title="Prime Member" style="width: 28px; height: 28px; bottom: 0; right: 0; border: 3px solid var(--bg-card);"><span class="material-icons-round" style="font-size: 16px;">star</span></div>
+      </div>
+
+      <!-- User Info -->
+      <div *ngIf="detailsType === 'USER'">
+        <h2 style="margin: 0 0 4px; font-size: 20px; color: var(--text-primary);" [class.prime-name]="detailsUser?.isPrime || detailsUser?.role === 'ROLE_ADMIN'">{{ detailsUser?.fullName }}</h2>
+        <p style="margin: 0 0 12px; color: var(--accent-primary); font-weight: 500;">@{{ detailsUser?.username }}</p>
+        
+        <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 16px;">
+          <span [class]="getDotClass(getDetailsUserStatus())"></span>
+          <span style="font-size: 13px; color: var(--text-secondary); text-transform: capitalize;">{{ getStatusText(getDetailsUserStatus()) }}</span>
+        </div>
+
+        <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; margin-bottom: 12px; text-align: left;">
+          <p style="margin: 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 4px;">Status Message</p>
+          <p style="margin: 0; font-size: 14px; color: var(--text-primary);">{{ detailsUser?.statusMessage || 'No status message set' }}</p>
+        </div>
+
+        <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; text-align: left;">
+          <p style="margin: 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 4px;">Bio</p>
+          <p style="margin: 0; font-size: 14px; color: var(--text-primary); line-height: 1.4; white-space: pre-wrap;">{{ detailsUser?.bio || 'No bio provided' }}</p>
+        </div>
+      </div>
+
+      <!-- Room Info -->
+      <div *ngIf="detailsType === 'ROOM'">
+        <h2 style="margin: 0 0 16px; font-size: 20px; color: var(--text-primary);">{{ detailsRoom?.name }}</h2>
+        
+        <div style="display: flex; justify-content: center; gap: 24px; margin-bottom: 20px;">
+          <div style="text-align: center;">
+            <p style="margin: 0; font-size: 20px; font-weight: bold; color: var(--accent-primary);">{{ detailsRoom?.memberCount }}</p>
+            <p style="margin: 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Members</p>
+          </div>
+          <div style="width: 1px; background: var(--border-color);"></div>
+          <div style="text-align: center;">
+            <p style="margin: 0; font-size: 20px; font-weight: bold; color: var(--accent-primary);">{{ detailsRoom?.maxMemberLimit ? detailsRoom?.maxMemberLimit : 'No limit' }}</p>
+            <p style="margin: 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Limit</p>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; text-align: left;">
+          <p style="margin: 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 4px;">Description</p>
+          <p style="margin: 0; font-size: 14px; color: var(--text-primary); line-height: 1.4; white-space: pre-wrap;">{{ detailsRoom?.description || 'No description provided' }}</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- Prime Upgrade Modal -->
+  <div class="modal-backdrop" *ngIf="showPrimeModal" (click)="closePrimeModal()">
+    <div class="modal-card glass animate-fade-in" style="width: 400px; padding: 30px; text-align: center; border-radius: 16px; position: relative;" (click)="$event.stopPropagation()">
+      <button class="icon-btn" (click)="closePrimeModal()" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1);">
+        <span class="material-icons-round">close</span>
+      </button>
+      
+      <span class="material-icons-round" style="font-size: 48px; color: #ffd700; margin-bottom: 12px; filter: drop-shadow(0 0 10px rgba(255,215,0,0.5));">stars</span>
+      <h2 style="font-size: 24px; color: #ffd700; margin: 0 0 8px; text-shadow: 0 0 5px rgba(255,215,0,0.2);">ConnectHub Prime</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 24px;">Unlock premium features and stand out from the crowd.</p>
+      
+      <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+        <div class="plan-card" [class.selected]="selectedPrimePlan === 'MONTHLY'" (click)="selectPrimePlan('MONTHLY')" style="flex: 1;">
+          <h3 style="margin: 0; font-size: 16px;">Monthly</h3>
+          <div class="plan-price">₹499</div>
+          <p style="margin: 0; font-size: 12px; color: var(--text-muted);">per month</p>
+        </div>
+        <div class="plan-card" [class.selected]="selectedPrimePlan === 'YEARLY'" (click)="selectPrimePlan('YEARLY')" style="flex: 1; position: relative;">
+          <div style="position: absolute; top: -10px; right: 50%; transform: translateX(50%); background: #ffd700; color: #000; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; white-space: nowrap;">SAVE 16%</div>
+          <h3 style="margin: 0; font-size: 16px;">Yearly</h3>
+          <div class="plan-price">₹4,999</div>
+          <p style="margin: 0; font-size: 12px; color: var(--text-muted);">per year</p>
+        </div>
+      </div>
+      
+      <div style="text-align: left; background: var(--bg-tertiary); padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+        <h4 style="margin: 0 0 12px; font-size: 14px;">Prime Benefits:</h4>
+        <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
+          <li>Exclusive Golden Profile Badge & Border</li>
+          <li>Highlighted Name in Chat & Sidebar</li>
+          <li>Priority Customer Support</li>
+          <li>Extended Upload Limits (Dummy)</li>
+        </ul>
+      </div>
+
+      <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 16px;">
+        * Note: There is no auto-renewal. You will need to renew it manually after your Prime subscription expires.
+      </p>
+
+      <button class="btn-prime" style="width: 100%; padding: 12px; font-size: 16px;" [disabled]="upgradingPrime" (click)="upgradeToPrime()">
+        <span class="spinner" *ngIf="upgradingPrime" style="width: 20px; height: 20px; border-width: 2px;"></span>
+        <span *ngIf="!upgradingPrime">Proceed to Payment</span>
+      </button>
+    </div>
+  </div>
+
+<!-- ============================================================ -->
+<!-- Create Room Modal -->
+<!-- ============================================================ -->
+<div class="modal-backdrop" *ngIf="showCreateRoom">
+  <div class="modal-card glass animate-fade-in" style="max-width: 450px;">
+    <h3>Create Room</h3>
+    <div class="form-group">
+      <label>Room Name</label>
+      <input type="text" class="input-field" placeholder="Room name..." [(ngModel)]="newRoomName" (keyup.enter)="createRoom()">
+    </div>
+    <div class="form-group">
+      <label>Description (optional)</label>
+      <input type="text" class="input-field" placeholder="Room description..." [(ngModel)]="newRoomDescription">
+    </div>
+    <div class="form-group">
+      <label>Max Members (optional)</label>
+      <input type="number" class="input-field" placeholder="Unlimited if empty" [(ngModel)]="newRoomMaxMembers">
+    </div>
+    <div class="form-group">
+      <label>Room Type</label>
+      <div class="room-type-selector" style="display: flex; gap: 8px;">
+        <button class="type-btn" [class.active]="newRoomType === 'GROUP'" (click)="newRoomType = 'GROUP'" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <span class="material-icons-round">group</span> Group
+        </button>
+      </div>
+    </div>
+
+    <div class="member-search-section">
+      <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: block;">Add Members (Optional)</label>
+      <div class="search-input-wrap" style="background: var(--bg-primary); border-radius: 4px; padding: 4px 8px; border: 1px solid var(--border-color); display: flex; align-items: center;">
+        <span class="material-icons-round" style="font-size: 18px; color: var(--text-muted);">search</span>
+        <input type="text" class="input-field input-sm" style="border: none; background: transparent; flex: 1; padding: 8px; outline: none; color: var(--text-primary);"
+          placeholder="Search users..." [(ngModel)]="newRoomMemberSearch" (keyup)="searchNewRoomMembers()">
+      </div>
+      <div class="search-loading" *ngIf="newRoomMemberSearchLoading" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Searching users...</div>
+
+      <div class="member-search-results" *ngIf="newRoomMemberSearchResults.length > 0" style="max-height: 120px; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 4px;">
+        <div class="member-result" *ngFor="let user of newRoomMemberSearchResults" (click)="addMemberToNewRoom(user)" style="display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid var(--border-color); cursor: pointer;">
+          <div class="member-avatar" style="width: 28px; height: 28px; border-radius: 50%; overflow: hidden; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;">
+            <img *ngIf="user.avatarUrl" [src]="cleanUrl(user.avatarUrl)" (error)="user.avatarUrl = ''" class="avatar-img" style="width: 100%; height: 100%; object-fit: cover;">
+            <div *ngIf="!user.avatarUrl" class="avatar-fallback" style="width: 100%; height: 100%; background: var(--bg-tertiary);"></div>
+          </div>
+          <div class="member-info" style="flex: 1; min-width: 0;">
+            <div class="member-name" style="font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{user.fullName}}</div>
+            <div class="member-email" style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{user.email}}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="selected-members" *ngIf="selectedMembersForNewRoom.length > 0" style="max-height: 120px; overflow-y: auto; margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+        <div class="selected-member" *ngFor="let member of selectedMembersForNewRoom" style="display: flex; align-items: center; justify-content: space-between; background: var(--accent-glow); border: 1px solid var(--accent-primary); border-radius: 4px; padding: 6px 8px;">
+          <span class="selected-member-name" style="font-size: 13px; font-weight: 500; color: var(--accent-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">{{ member.fullName || member.username }}</span>
+          <button type="button" (click)="removeMemberFromNewRoom(member.userId)" class="btn-remove" style="background: transparent; border: none; color: var(--text-secondary); font-size: 16px; cursor: pointer;">×</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 8px;">
+      <button class="btn btn-secondary" (click)="showCreateRoom = false">Cancel</button>
+      <button class="btn btn-primary" (click)="createRoom()" [disabled]="!newRoomName.trim()">Create Room</button>
+    </div>
+  </div>
+</div>

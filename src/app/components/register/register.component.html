@@ -1,0 +1,137 @@
+<div class="auth-container">
+  <div class="auth-card glass animate-fade-in">
+    <div class="auth-header">
+      <div class="logo">
+        <span class="material-icons-round logo-icon">chat</span>
+        <h1>ConnectHub</h1>
+      </div>
+      <p class="subtitle">Create your account</p>
+    </div>
+
+    <div class="error-banner" *ngIf="error">
+      <span class="material-icons-round">error_outline</span>
+      {{ error }}
+    </div>
+
+    <!-- Google Sign-Up Button -->
+    <div class="google-btn-wrapper" *ngIf="googleAvailable; else googleUnavailable">
+      <div #googleSignupBtn id="google-signup-btn"></div>
+      <div *ngIf="googleLoading" class="google-loading">
+        <span class="spinner"></span> Signing up with Google...
+      </div>
+    </div>
+
+    <ng-template #googleUnavailable>
+      <div class="error-banner">
+        <span class="material-icons-round">info</span>
+        Google sign-up is not configured for this environment.
+      </div>
+    </ng-template>
+
+    <!-- Divider -->
+    <div class="divider">
+      <span>or register with email</span>
+    </div>
+
+    <form (ngSubmit)="onRegister()" class="auth-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="fullName">Full Name</label>
+          <input id="fullName" type="text" class="input-field"
+            placeholder="John Doe" [(ngModel)]="fullName" name="fullName" required>
+        </div>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" type="text" class="input-field"
+            placeholder="johndoe" [(ngModel)]="username" name="username" required>
+          <div *ngIf="usernameError" style="color: red; font-size: 12px; margin-top: 4px;">{{ usernameError }}</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-email">Email</label>
+        <input id="reg-email" type="email" class="input-field"
+          placeholder="you@example.com" [(ngModel)]="email" name="email" required>
+        <div *ngIf="emailError" style="color: red; font-size: 12px; margin-top: 4px;">{{ emailError }}</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <input id="reg-password" type="password" class="input-field"
+            placeholder="Min 6 characters" [(ngModel)]="password" name="password" required>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input id="confirmPassword" type="password" class="input-field"
+            placeholder="••••••••" [(ngModel)]="confirmPassword" name="confirmPassword" required>
+          <div *ngIf="passwordError" style="color: red; font-size: 12px; margin-top: 4px;">{{ passwordError }}</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" [disabled]="loading">
+        <span class="material-icons-round" *ngIf="!loading">person_add</span>
+        <span *ngIf="loading" class="spinner"></span>
+        {{ loading ? 'Creating account...' : 'Create Account' }}
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Already have an account? <a routerLink="/login">Sign in</a></p>
+    </div>
+  </div>
+
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+</div>
+
+<!-- Modal is placed OUTSIDE .auth-container to avoid overflow:hidden clipping -->
+<!-- position:fixed with inset:0 covers the full viewport regardless of DOM position -->
+<div class="modal-backdrop" *ngIf="showGoogleSetupModal">
+    <div class="modal-card glass animate-fade-in">
+      <h3>Complete Google Sign-Up</h3>
+      <p class="modal-subtitle">Set your username and password to finish account setup.</p>
+
+      <div class="form-group">
+        <label for="google-fullname">Full Name</label>
+        <input id="google-fullname" type="text" class="input-field"
+          [(ngModel)]="googleSetupFullName" name="googleSetupFullName">
+      </div>
+
+      <div class="form-group">
+        <label for="google-email">Email (read-only)</label>
+        <input id="google-email" type="email" class="input-field"
+          [value]="googleSetupEmail" disabled>
+      </div>
+
+      <div class="form-group">
+        <label for="google-username">Username</label>
+        <input id="google-username" type="text" class="input-field"
+          [(ngModel)]="googleSetupUsername" name="googleSetupUsername" required>
+        <div *ngIf="googleUsernameError" style="color: red; font-size: 12px; margin-top: 4px;">{{ googleUsernameError }}</div>
+      </div>
+
+      <div class="form-group">
+        <label for="google-password">Password</label>
+        <input id="google-password" type="password" class="input-field"
+          [(ngModel)]="googleSetupPassword" name="googleSetupPassword" required>
+      </div>
+
+      <div class="form-group">
+        <label for="google-confirm-password">Confirm Password</label>
+        <input id="google-confirm-password" type="password" class="input-field"
+          [(ngModel)]="googleSetupConfirmPassword" name="googleSetupConfirmPassword" required>
+        <div *ngIf="googlePasswordError" style="color: red; font-size: 12px; margin-top: 4px;">{{ googlePasswordError }}</div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" (click)="closeGoogleSetupModal()" [disabled]="googleSetupLoading">
+          Cancel
+        </button>
+        <button class="btn btn-primary" type="button" (click)="completeGoogleSetup()" [disabled]="googleSetupLoading">
+          <span *ngIf="googleSetupLoading" class="spinner"></span>
+          {{ googleSetupLoading ? 'Saving...' : 'Complete Setup' }}
+        </button>
+      </div>
+    </div>
+  </div>
